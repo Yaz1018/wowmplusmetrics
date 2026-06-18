@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Midnight Season 1 — Mythic+ Class/Spec Performance</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#f6f7f9; --card:#ffffff; --ink:#1c2128; --muted:#5b6675; --line:#e4e8ee;
+    --accent:#5b4bd6; --accentSoft:#efeefb;
+    --S:#e0457b; --A:#e8863c; --B:#d9b330; --C:#5aa469; --D:#6f8597; --F:#9aa3ad;
+    --shadow:0 1px 2px rgba(20,24,40,.06),0 4px 14px rgba(20,24,40,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 22px 60px;}
+  header h1{font-size:24px;margin:0 0 4px;letter-spacing:-.01em;}
+  header .sub{color:var(--muted);font-size:13.5px;margin:0 0 2px;}
+  .asof{display:inline-block;margin-top:10px;background:var(--accentSoft);color:var(--accent);font-weight:600;font-size:12px;padding:5px 11px;border-radius:999px;}
+  .insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:22px 0 6px;}
+  .ins{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);}
+  .ins h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);}
+  .ins p{margin:0;font-size:13.5px;color:var(--ink);}
+  .ins .big{font-size:21px;font-weight:700;display:block;margin-bottom:2px;}
+  nav.tabs{display:flex;gap:6px;margin:26px 0 16px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+  nav.tabs button{appearance:none;border:none;background:transparent;color:var(--muted);font-weight:600;font-size:14px;padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+  nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;margin-bottom:18px;}
+  .card h2{margin:0 0 2px;font-size:17px;}
+  .card .note{color:var(--muted);font-size:13px;margin:0 0 14px;}
+  .chartbox{position:relative;height:430px;width:100%;}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  .controls input,.controls select{font:14px inherit;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);}
+  .controls input{flex:1;min-width:170px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);cursor:pointer;user-select:none;position:sticky;top:0;background:var(--card);}
+  th.num,td.num{text-align:right;}
+  th:hover{color:var(--accent);}
+  tr:hover td{background:#fafbfc;}
+  .spec{font-weight:600;}
+  .swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:middle;}
+  .tier{display:inline-block;min-width:20px;text-align:center;font-weight:800;color:#fff;border-radius:6px;padding:1px 7px;font-size:12px;}
+  .tier.S{background:var(--S)} .tier.A{background:var(--A)} .tier.B{background:var(--B)} .tier.C{background:var(--C)} .tier.D{background:var(--D)} .tier.F{background:var(--F)}
+  .bar{height:7px;border-radius:4px;background:var(--accentSoft);position:relative;min-width:46px;}
+  .bar > i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--accent);}
+  .tierlist{display:grid;gap:10px;}
+  .trow{display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:stretch;}
+  .tlabel{display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:20px;border-radius:10px;}
+  .tlabel.S{background:var(--S)} .tlabel.A{background:var(--A)} .tlabel.B{background:var(--B)} .tlabel.C{background:var(--C)} .tlabel.D{background:var(--D)} .tlabel.F{background:var(--F)}
+  .titems{display:flex;flex-wrap:wrap;gap:7px;align-content:center;background:#fbfcfd;border:1px solid var(--line);border-radius:10px;padding:9px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin:4px 0 0;font-size:12px;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;}
+  .callout{background:var(--accentSoft);border:1px solid #ddd9f7;border-radius:11px;padding:11px 14px;font-size:13px;margin:0 0 14px;}
+  .callout b{color:var(--accent);}
+  details{margin:8px 0;border:1px solid var(--line);border-radius:10px;padding:6px 12px;background:#fff;}
+  summary{cursor:pointer;font-weight:600;font-size:13.5px;}
+  .src{font-size:12.5px;color:var(--muted);}
+  .src a{color:var(--accent);text-decoration:none;}
+  .src a:hover{text-decoration:underline;}
+  .small{font-size:12px;color:var(--muted);}
+  .scrollx{overflow-x:auto;}
+  @media (max-width:560px){ .chartbox{height:360px} header h1{font-size:20px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>World of Warcraft — Midnight Season 1</h1>
+    <p class="sub">Mythic+ class &amp; spec breakout: representation, throughput, and a blended tier read, focused on high keys.</p>
+    <p class="sub">Empirical data first; opinion tier lists shown only as a contrast.</p>
+    <span class="asof" id="asof"></span>
+  </header>
+
+  <section class="insights" id="insights"></section>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="dps" class="active">Damage (27)</button>
+    <button data-tab="tank">Tanks (6)</button>
+    <button data-tab="heal">Healers (7)</button>
+    <button data-tab="method">Method &amp; sources</button>
+  </nav>
+
+  <!-- DPS -->
+  <section class="panel active" id="panel-dps">
+    <div class="card">
+      <h2>Representation vs. throughput</h2>
+      <p class="note">Each point is a DPS spec. Vertical = average DPS at +16–24 keys. Horizontal = number of logged high-key runs (representation), log scale. Top-right is strong and popular; top-left is strong but rarely played; bottom-right is popular but mid-damage.</p>
+      <div class="chartbox"><canvas id="scatter"></canvas></div>
+      <div class="legend" id="scatterLegend"></div>
+      <div class="callout" style="margin-top:14px">The two charts barely overlap. <b>Augmentation Evoker</b> is a top-3 performer yet sits low on representation because it is a premade-only support whose value is buffing the group, not its own meter. <b>Retribution</b> is the opposite: heavily played, middle of the damage pack.</div>
+    </div>
+
+    <div class="card">
+      <h2>Spec table</h2>
+      <p class="note">Click any column header to sort. Search or filter by class. "Damage tier" is Mythicstats' own split; "Meta (blended)" combines throughput and high-key representation; "Opinion" is a hand-made tier list for contrast.</p>
+      <div class="controls">
+        <input id="dpsSearch" placeholder="Search spec or class…">
+        <select id="dpsClass"></select>
+      </div>
+      <div class="scrollx"><table id="dpsTable"></table></div>
+    </div>
+
+    <div class="card">
+      <h2>Blended meta tier list</h2>
+      <p class="note">Tiers from the blended score (throughput + high-key representation). Supports are flagged because raw damage understates them.</p>
+      <div class="tierlist" id="dpsTiers"></div>
+    </div>
+  </section>
+
+  <!-- TANK -->
+  <section class="panel" id="panel-tank">
+    <div class="card">
+      <div class="callout"><b>Read this first.</b> Mythicstats measures tank <b>damage</b> and run counts, not survivability or utility, which are most of a tank's value. The damage and representation columns are objective; the meta tier folds in survivability and utility from cross-source reads.</div>
+      <h2>Tank table</h2>
+      <p class="note">Click headers to sort.</p>
+      <div class="scrollx"><table id="tankTable"></table></div>
+    </div>
+    <div class="card">
+      <h2>High-key representation</h2>
+      <p class="note">Logged runs at +16–24. Guardian Druid is the runaway pick at the very top this week.</p>
+      <div class="chartbox" style="height:300px"><canvas id="tankBar"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Meta tier list</h2>
+      <div class="tierlist" id="tankTiers"></div>
+    </div>
+  </section>
+
+  <!-- HEAL -->
+  <section class="panel" id="panel-heal">
+    <div class="card">
+      <div class="callout"><b>Read this first.</b> The throughput column here is healer <b>damage</b> (a real M+ factor), not healing done. A healer ranking low on damage can still be the best at keeping the group alive. <b>Restoration Druid</b> posts the highest sustained HPS of any healer yet does the least damage and is rare at the very top, so its meta tier reflects healing, not the damage column.</div>
+      <h2>Healer table</h2>
+      <p class="note">Click headers to sort. Meta tier weighs HPS, utility, and representation, not the damage figure.</p>
+      <div class="scrollx"><table id="healTable"></table></div>
+    </div>
+    <div class="card">
+      <h2>High-key representation</h2>
+      <p class="note">Logged runs at +16–24. Mistweaver and Restoration Shaman carry most of the top-end healer slots.</p>
+      <div class="chartbox" style="height:300px"><canvas id="healBar"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Meta tier list</h2>
+      <div class="tierlist" id="healTiers"></div>
+    </div>
+  </section>
+
+  <!-- METHOD -->
+  <section class="panel" id="panel-method">
+    <div class="card">
+      <h2>How to read this, and where it comes from</h2>
+      <p class="note">Built to be defensible, not to hand you one author's opinion. The numbers come from logged play; the tier blends are transparent.</p>
+
+      <details open><summary>Snapshot &amp; scope</summary>
+      <p class="small">Live game state at build time: the <b>Midnight</b> expansion, <b>Season 1</b> (slug <code>season-mn-1</code>, started 24 Mar 2026). The earlier The War Within seasons are closed. Throughput and high-key representation are <b>period 1068 (week 13)</b>, dungeon keys <b>+16 to +24</b>. This is a snapshot, not a live feed; M+ tuning shifts weekly.</p></details>
+
+      <details><summary>Metrics</summary>
+      <p class="small"><b>Throughput (Avg / Top 5%)</b> — average DPS or HPS-role damage across the whole dungeon including downtime, from the Warcraft Logs API via Mythicstats. Numbers are compressed: every DPS spec sits inside roughly a 30% band, so small gaps are not decisive.<br>
+      <b>Representation (Runs)</b> — count of logged runs for that spec at +16–24, a clean revealed-preference signal of what high-key players actually bring.<br>
+      <b>Damage tier</b> — Mythicstats' own six-way split of the role by average damage (one spec is always forced into F; F means lowest damage, not unplayable).<br>
+      <b>Meta tier (blended)</b> — for DPS, a score that averages throughput rank and high-key representation rank, then bins specs into S/A/B/C/D/F. For tanks and healers the meta tier instead leans on survivability / HPS / utility from cross-source reads, because damage alone misrepresents those roles.<br>
+      <b>Opinion</b> — a hand-made tier list (Skycoach), included only to show how far author opinion drifts from logged play.</p></details>
+
+      <details><summary>Why not just trust a tier list?</summary>
+      <p class="small">The opinion lists openly disagree with the logs and with each other. Skycoach puts Arcane Mage and Elemental Shaman in S; in current high-key logs both sit near the bottom of the damage table. The reverse holds too: Unholy DK leads logged damage but several authors place it only A. Treat the opinion column as commentary, the logged columns as evidence, and remember that player skill and group composition move results more than any list.</p></details>
+
+      <details><summary>Known limitations</summary>
+      <p class="small">Healer and tank "throughput" is damage only; healing and mitigation throughput are not in this feed, so those meta tiers carry more judgment. All-level popularity (e.g., Retribution at 7.4% of all M+ play) comes from an earlier-season Raider.io snapshot and is shown only as context. Sample sizes vary widely (Unholy DK 2.7K runs vs. Devastation 15), so low-run specs are noisier. Chrome rendering was unavailable at build time, so Archon and Warcraft Logs interactive pages were not scraped directly; their numbers enter through reporting and search.</p></details>
+
+      <h2 style="margin-top:18px">Sources</h2>
+      <p class="src">
+        Throughput &amp; high-key representation: <a href="https://mythicstats.com/dps" target="_blank" rel="noopener">Mythicstats</a> (Warcraft Logs API), keys +16–24, period 1068.<br>
+        Performance "points" view &amp; all-level popularity: <a href="https://www.icy-veins.com/wow/news/the-most-played-specs-and-groups-and-dps-logs-of-midnight-mythic-season-1/" target="_blank" rel="noopener">Icy-Veins data article</a> sourcing <a href="https://raider.io/stats/mythic-plus-spec-popularity?scope=this-reset&amp;season=season-mn-1" target="_blank" rel="noopener">Raider.io analytics</a> and <a href="https://www.warcraftlogs.com/zone/statistics/47" target="_blank" rel="noopener">Warcraft Logs zone 47</a>.<br>
+        Current season &amp; dungeon pool: <a href="https://raider.io/api/v1/mythic-plus/static-data?expansion_id=11" target="_blank" rel="noopener">Raider.io static data</a>.<br>
+        Healer HPS scores: <a href="https://www.archon.gg/wow/tier-list/healer-rankings/mythic-plus/high-keys/all-dungeons/this-week" target="_blank" rel="noopener">Archon.gg</a>.<br>
+        Opinion cross-check: <a href="https://skycoach.gg/blog/wow/articles/midnight-mythic-plus-dps-tier-list" target="_blank" rel="noopener">Skycoach</a>, <a href="https://www.wowhead.com/guide/classes/tier-lists/dps-rankings-mythic-plus" target="_blank" rel="noopener">Wowhead</a>, <a href="https://www.icy-veins.com/wow/mythic-dps-tier-list" target="_blank" rel="noopener">Icy-Veins tier lists</a>.
+      </p>
+    </div>
+  </section>
+
+  <p class="small" style="text-align:center;margin-top:6px">Snapshot for analysis only. Bring the player, not the tier list.</p>
+</div>
+
+<script>
+const AS_OF = "Midnight S1 · period 1068 (week 13) · keys +16–24 · snapshot ~June 2026";
+document.getElementById('asof').textContent = AS_OF;
+
+const CLASS_COLOR = {
+  "Death Knight":"#C41E3A","Demon Hunter":"#A330C9","Druid":"#FF7C0A","Evoker":"#33937F",
+  "Hunter":"#AAD372","Mage":"#3FC7EB","Monk":"#00A36C","Paladin":"#F48CBA","Priest":"#8a8f98",
+  "Rogue":"#C9B500","Shaman":"#0070DD","Warlock":"#8788EE","Warrior":"#C69B6D"
+};
+
+// avg/top in thousands DPS; runs = logged runs at +16-24 (period 1068). dmg = Mythicstats role tier. op = Skycoach opinion tier.
+const DPS = [
+  ["Unholy Death Knight","Death Knight",181,239,2700,"S","A"],
+  ["Devourer Demon Hunter","Demon Hunter",174,234,1200,"S","S"],
+  ["Augmentation Evoker","Evoker",168,239,901,"A","A",true],
+  ["Arms Warrior","Warrior",163,215,397,"B","C"],
+  ["Feral Druid","Druid",162,206,90,"B","B"],
+  ["Outlaw Rogue","Rogue",162,207,90,"B","B"],
+  ["Demonology Warlock","Warlock",158,207,385,"C","S"],
+  ["Retribution Paladin","Paladin",157,204,808,"C","B"],
+  ["Affliction Warlock","Warlock",157,188,82,"C","B"],
+  ["Enhancement Shaman","Shaman",155,202,276,"C","A"],
+  ["Fury Warrior","Warrior",153,195,174,"C","A"],
+  ["Survival Hunter","Hunter",152,190,157,"C","B"],
+  ["Assassination Rogue","Rogue",152,197,51,"C","B"],
+  ["Havoc Demon Hunter","Demon Hunter",151,191,131,"C","A"],
+  ["Shadow Priest","Priest",151,199,206,"D","D"],
+  ["Beast Mastery Hunter","Hunter",150,193,702,"D","C"],
+  ["Arcane Mage","Mage",149,180,49,"D","S"],
+  ["Marksmanship Hunter","Hunter",149,183,66,"D","A"],
+  ["Windwalker Monk","Monk",147,184,59,"D","C"],
+  ["Subtlety Rogue","Rogue",147,188,124,"D","B"],
+  ["Frost Death Knight","Death Knight",146,179,32,"D","B"],
+  ["Fire Mage","Mage",146,168,24,"D","B"],
+  ["Elemental Shaman","Shaman",146,184,211,"D","S"],
+  ["Frost Mage","Mage",145,179,268,"D","A"],
+  ["Balance Druid","Druid",142,171,39,"F","A"],
+  ["Destruction Warlock","Warlock",140,161,22,"F","B"],
+  ["Devastation Evoker","Evoker",137,145,15,"F","B"]
+].map(r=>({spec:r[0],cls:r[1],avg:r[2],top:r[3],runs:r[4],dmg:r[5],op:r[6],support:!!r[7]}));
+
+// Tanks: avg/top = tank damage (K). metaTier = survivability+utility-aware cross-source read. note explains.
+const TANK = [
+  ["Guardian Druid","Druid",97,132,2700,"S","Runaway top-end pick this week: most damage and by far the most runs."],
+  ["Brewmaster Monk","Monk",91,121,299,"A","Most popular tank across all key levels; smoothest pull-to-pull."],
+  ["Protection Warrior","Warrior",86,117,143,"A","High personal damage and strong utility; solid all-rounder."],
+  ["Blood Death Knight","Death Knight",88,107,160,"B","Self-sustain and grip utility; mid representation at the top."],
+  ["Vengeance Demon Hunter","Demon Hunter",89,111,66,"B","Good damage and mobility; lighter representation right now."],
+  ["Protection Paladin","Paladin",77,108,151,"B","Lowest tank damage in the feed but healthy run count; playable."]
+];
+
+// Healers: avg/top = healer DAMAGE (K), not HPS. metaTier weighs HPS+utility+representation.
+const HEAL = [
+  ["Mistweaver Monk","Monk",42,58,2100,"S","Most-represented top-key healer; highest healer damage and strong tank synergy."],
+  ["Restoration Shaman","Shaman",20,31,1200,"S","Healing Tide and Spirit Link make it close to mandatory at the top; very high representation."],
+  ["Restoration Druid","Druid",7.0,20,26,"S","Highest sustained HPS of any healer (Archon score ~3004) but lowest damage and rare at the very top."],
+  ["Holy Paladin","Paladin",13,27,142,"A","Climbed hard early season; strongest with geared tanks."],
+  ["Preservation Evoker","Evoker",36,55,15,"B","Strong throughput but tiny representation; emerging pick."],
+  ["Discipline Priest","Priest",21,28,374,"B","Damage-and-mitigation model hurt by the March nerf."],
+  ["Holy Priest","Priest",16,28,42,"C","Niche; light representation at high keys."]
+];
+
+const TIER_ORDER=["S","A","B","C","D","F"];
+
+/* ---------- blended meta tier for DPS ---------- */
+function rankAsc(arr,key,desc=true){
+  const idx=arr.map((d,i)=>i).sort((a,b)=> desc ? arr[b][key]-arr[a][key] : arr[a][key]-arr[b][key]);
+  const rank=Array(arr.length); idx.forEach((origIdx,pos)=> rank[origIdx]=pos+1); return rank;
+}
+(function computeDpsMeta(){
+  const dpsRank=rankAsc(DPS,"avg",true);
+  const repRank=rankAsc(DPS,"runs",true);
+  DPS.forEach((d,i)=>{ d.dpsRank=dpsRank[i]; d.repRank=repRank[i]; d.metaScore=(dpsRank[i]+repRank[i])/2; });
+  const order=DPS.map((d,i)=>i).sort((a,b)=>DPS[a].metaScore-DPS[b].metaScore);
+  const bins=[["S",3],["A",5],["B",7],["C",6],["D",4],["F",2]];
+  let p=0; bins.forEach(([t,n])=>{ for(let k=0;k<n && p<order.length;k++,p++) DPS[order[p]].meta=t; });
+})();
+TANK.forEach(r=>r.meta=r[5]); HEAL.forEach(r=>r.meta=r[5]);
+
+/* ---------- insight cards ---------- */
+const topDps=[...DPS].sort((a,b)=>b.avg-a.avg)[0];
+const topRep=[...DPS].sort((a,b)=>b.runs-a.runs)[0];
+const insights=[
+  ["Top logged damage", `<span class="big">${topDps.spec.split(" ").slice(-2).join(" ")}</span>${topDps.avg}K avg at +16–24, the most-run DPS too (${(topDps.runs/1000).toFixed(1)}K runs).`],
+  ["The support paradox", `<span class="big">Augmentation</span>Top-3 by damage and #1 by Warcraft Logs score, yet only ~2% of all play. Premade-only buff spec.`],
+  ["Popular ≠ strong", `<span class="big">Retribution</span>Most-played DPS at 7.4% all-level, but mid-table on high-key damage.`],
+  ["Tank &amp; healer top", `<span class="big">Guardian · Mistweaver</span>Each owns ~2.7K / 2.1K high-key runs, far ahead of the rest of their role.`]
+];
+document.getElementById('insights').innerHTML=insights.map(i=>`<div class="ins"><h3>${i[0]}</h3><p>${i[1]}</p></div>`).join("");
+
+/* ---------- tabs ---------- */
+const tabs=document.getElementById('tabs');
+tabs.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  [...tabs.children].forEach(x=>x.classList.toggle('active',x===b));
+  const t=b.dataset.tab;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+t));
+  if(t==='tank') drawTankBar(); if(t==='heal') drawHealBar();
+});
+
+/* ---------- helpers ---------- */
+const sw=cls=>`<span class="swatch" style="background:${CLASS_COLOR[cls]||'#999'}"></span>`;
+const tier=t=>`<span class="tier ${t}">${t}</span>`;
+function repBar(v,max){const pct=Math.max(4,Math.round(v/max*100));return `<div class="bar" title="${v.toLocaleString()} runs"><i style="width:${pct}%"></i></div>`;}
+
+/* ---------- DPS table ---------- */
+const dpsMaxRuns=Math.max(...DPS.map(d=>d.runs));
+const totalDpsRuns=DPS.reduce((s,d)=>s+d.runs,0);
+let dpsSort={key:"avg",desc:true};
+function renderDps(){
+  const q=document.getElementById('dpsSearch').value.toLowerCase();
+  const cf=document.getElementById('dpsClass').value;
+  let rows=DPS.filter(d=>(!cf||d.cls===cf)&&(d.spec.toLowerCase().includes(q)||d.cls.toLowerCase().includes(q)));
+  const k=dpsSort.key;
+  rows.sort((a,b)=>{let x=a[k],y=b[k];if(k==="meta"||k==="dmg"||k==="op"){x=TIER_ORDER.indexOf(a[k]);y=TIER_ORDER.indexOf(b[k]);}if(typeof x==="string"){return dpsSort.desc?y.localeCompare(x):x.localeCompare(y);}return dpsSort.desc?y-x:x-y;});
+  const head=[["spec","Spec"],["cls","Class"],["avg","Avg DPS"],["top","Top 5%"],["runs","Runs"],["rep","Rep %"],["dmg","Dmg tier"],["meta","Meta (blended)"],["op","Opinion"]];
+  let html="<thead><tr>"+head.map(h=>`<th class="${['avg','top','runs','rep'].includes(h[0])?'num':''}" data-k="${h[0]}">${h[1]}</th>`).join("")+"</tr></thead><tbody>";
+  rows.forEach(d=>{
+    html+=`<tr>
+      <td class="spec">${sw(d.cls)}${d.spec}${d.support?' <span class="small">⌁ support</span>':''}</td>
+      <td>${d.cls}</td>
+      <td class="num">${d.avg}K</td>
+      <td class="num">${d.top}K</td>
+      <td class="num">${d.runs.toLocaleString()}</td>
+      <td class="num">${(d.runs/totalDpsRuns*100).toFixed(1)}%</td>
+      <td>${tier(d.dmg)}</td>
+      <td>${tier(d.meta)}</td>
+      <td>${tier(d.op)}</td>
+    </tr>`;
+  });
+  document.getElementById('dpsTable').innerHTML=html+"</tbody>";
+}
+document.getElementById('dpsTable').addEventListener('click',e=>{const th=e.target.closest('th');if(!th)return;const k=th.dataset.k;if(dpsSort.key===k)dpsSort.desc=!dpsSort.desc;else dpsSort={key:k,desc:true};renderDps();});
+document.getElementById('dpsSearch').addEventListener('input',renderDps);
+const clsSel=document.getElementById('dpsClass');
+clsSel.innerHTML='<option value="">All classes</option>'+[...new Set(DPS.map(d=>d.cls))].sort().map(c=>`<option>${c}</option>`).join("");
+clsSel.addEventListener('change',renderDps);
+
+/* ---------- generic tank/heal table ---------- */
+function renderRoleTable(id,data){
+  const max=Math.max(...data.map(d=>d[4]));
+  const total=data.reduce((s,d)=>s+d[4],0);
+  let st={key:4,desc:true};
+  const head=[["0","Spec"],["1","Class"],["2","Avg dmg"],["3","Top 5%"],["4","Runs"],["rep","Rep %"],["meta","Meta tier"],["note","Notes"]];
+  function draw(){
+    let rows=[...data];
+    rows.sort((a,b)=>{let x=a[st.key],y=b[st.key];if(st.key==="meta"){x=TIER_ORDER.indexOf(a[5]);y=TIER_ORDER.indexOf(b[5]);}if(typeof x==="string"&&st.key!=="meta"){return st.desc?(""+y).localeCompare(x):(""+x).localeCompare(y);}return st.desc?y-x:x-y;});
+    let html="<thead><tr>"+head.map(h=>`<th class="${['2','3','4','rep'].includes(h[0])?'num':''}" data-k="${h[0]}">${h[1]}</th>`).join("")+"</tr></thead><tbody>";
+    rows.forEach(d=>{
+      html+=`<tr>
+        <td class="spec">${sw(d[1])}${d[0]}</td>
+        <td>${d[1]}</td>
+        <td class="num">${d[2]}K</td>
+        <td class="num">${d[3]}K</td>
+        <td class="num">${d[4].toLocaleString()}</td>
+        <td class="num">${(d[4]/total*100).toFixed(1)}%</td>
+        <td>${tier(d[5])}</td>
+        <td class="small" style="white-space:normal;min-width:240px">${d[6]}</td>
+      </tr>`;
+    });
+    document.getElementById(id).innerHTML=html+"</tbody>";
+  }
+  document.getElementById(id).addEventListener('click',e=>{const th=e.target.closest('th');if(!th)return;let k=th.dataset.k;if(!isNaN(k))k=+k;if(st.key===k)st.desc=!st.desc;else st={key:k,desc:true};draw();});
+  draw();
+}
+renderRoleTable('tankTable',TANK);
+renderRoleTable('healTable',HEAL);
+
+/* ---------- tier lists ---------- */
+function buildTiers(elId,items){
+  const map={}; TIER_ORDER.forEach(t=>map[t]=[]);
+  items.forEach(it=>map[it.meta].push(it));
+  let html="";
+  TIER_ORDER.forEach(t=>{
+    if(!map[t].length)return;
+    html+=`<div class="trow"><div class="tlabel ${t}">${t}</div><div class="titems">`+
+      map[t].map(it=>`<span class="chip">${sw(it.cls)}${it.spec}${it.support?' <span class="small">⌁</span>':''}</span>`).join("")+
+      `</div></div>`;
+  });
+  document.getElementById(elId).innerHTML=html;
+}
+buildTiers('dpsTiers',DPS);
+buildTiers('tankTiers',TANK.map(r=>({spec:r[0],cls:r[1],meta:r[5]})));
+buildTiers('healTiers',HEAL.map(r=>({spec:r[0],cls:r[1],meta:r[5]})));
+
+/* ---------- scatter (DPS) ---------- */
+let scatterChart;
+function drawScatter(){
+  const ctx=document.getElementById('scatter');
+  const data=DPS.map(d=>({x:d.runs,y:d.avg,spec:d.spec,cls:d.cls,support:d.support}));
+  scatterChart=new Chart(ctx,{
+    type:'scatter',
+    data:{datasets:[{
+      data,
+      parsing:false,
+      pointRadius:d=>d.raw.support?9:7,
+      pointHoverRadius:11,
+      backgroundColor:d=>(CLASS_COLOR[d.raw.cls]||'#999')+'cc',
+      borderColor:d=>d.raw.support?'#1c2128':'#fff',
+      borderWidth:d=>d.raw.support?2:1
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{type:'logarithmic',title:{display:true,text:'High-key runs (representation, log scale)'},grid:{color:'#eef1f5'},
+           ticks:{callback:v=>{const a=[10,30,100,300,1000,3000];return a.includes(v)?v.toLocaleString():''}}},
+        y:{title:{display:true,text:'Average DPS at +16–24 (thousands)'},grid:{color:'#eef1f5'},ticks:{callback:v=>v+'K'}}
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>`${c.raw.spec}: ${c.raw.y}K avg · ${c.raw.x.toLocaleString()} runs`}}
+      }
+    }
+  });
+  // simple class legend
+  const used=[...new Set(DPS.map(d=>d.cls))].sort();
+  document.getElementById('scatterLegend').innerHTML=used.map(c=>`<span>${sw(c)}${c}</span>`).join("")+`<span style="font-weight:600">◯ outlined = support spec</span>`;
+}
+
+/* ---------- bar charts ---------- */
+let tankBarChart,healBarChart;
+function roleBar(canvasId,chartRef,data){
+  const ctx=document.getElementById(canvasId);
+  const sorted=[...data].sort((a,b)=>b[4]-a[4]);
+  return new Chart(ctx,{
+    type:'bar',
+    data:{labels:sorted.map(d=>d[0]),datasets:[{data:sorted.map(d=>d[4]),
+      backgroundColor:sorted.map(d=>(CLASS_COLOR[d[1]]||'#999')+'dd'),borderRadius:5}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x.toLocaleString()+' runs'}}},
+      scales:{x:{title:{display:true,text:'Logged runs (+16–24)'},grid:{color:'#eef1f5'}},y:{grid:{display:false}}}}
+  });
+}
+function drawTankBar(){if(!tankBarChart)tankBarChart=roleBar('tankBar',tankBarChart,TANK);}
+function drawHealBar(){if(!healBarChart)healBarChart=roleBar('healBar',healBarChart,HEAL);}
+
+/* init */
+renderDps();
+drawScatter();
+</script>
+</body>
+</html>
